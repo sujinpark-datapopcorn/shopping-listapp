@@ -137,9 +137,13 @@
     <div class="empty" id="empty">리스트가 비어 있습니다</div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const STORAGE_KEY = 'shopping-list';
-    let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const SUPABASE_URL = 'https://kwjhqpsuckidanhmorhy.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3amhxcHN1Y2tpZGFuaG1vcmh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNTc4OTYsImV4cCI6MjA4NjYzMzg5Nn0.mAqVdegybE5YTVzZpk3-VAxqouBX_SXGy-PMc0hI384';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let items = [];
 
     const listEl = document.getElementById('list');
     const emptyEl = document.getElementById('empty');
@@ -151,8 +155,14 @@
       if (e.key === 'Enter') addItem();
     });
 
-    function save() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    async function loadItems() {
+      const { data, error } = await supabase
+        .from('shopping_items')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (error) { console.error('Load error:', error); return; }
+      items = data;
+      render();
     }
 
     function render() {
@@ -163,7 +173,7 @@
       emptyEl.style.display = total === 0 ? 'block' : 'none';
       countEl.textContent = total > 0 ? `${checked}/${total} 완료` : '';
 
-      items.forEach((item, idx) => {
+      items.forEach((item) => {
         const li = document.createElement('li');
         if (item.checked) li.classList.add('checked');
 
@@ -173,8 +183,8 @@
           <button title="삭제">&times;</button>
         `;
 
-        li.querySelector('input[type="checkbox"]').addEventListener('change', () => toggleItem(idx));
-        li.querySelector('button').addEventListener('click', () => deleteItem(idx));
+        li.querySelector('input[type="checkbox"]').addEventListener('change', () => toggleItem(item.id));
+        li.querySelector('button').addEventListener('click', () => deleteItem(item.id));
 
         listEl.appendChild(li);
       });
@@ -186,29 +196,39 @@
       return div.innerHTML;
     }
 
-    function addItem() {
+    async function addItem() {
       const name = input.value.trim();
       if (!name) return;
-      items.push({ name, checked: false });
       input.value = '';
       input.focus();
-      save();
-      render();
+      const { error } = await supabase
+        .from('shopping_items')
+        .insert({ name, checked: false });
+      if (error) { console.error('Insert error:', error); return; }
+      await loadItems();
     }
 
-    function toggleItem(idx) {
-      items[idx].checked = !items[idx].checked;
-      save();
-      render();
+    async function toggleItem(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      const { error } = await supabase
+        .from('shopping_items')
+        .update({ checked: !item.checked })
+        .eq('id', id);
+      if (error) { console.error('Update error:', error); return; }
+      await loadItems();
     }
 
-    function deleteItem(idx) {
-      items.splice(idx, 1);
-      save();
-      render();
+    async function deleteItem(id) {
+      const { error } = await supabase
+        .from('shopping_items')
+        .delete()
+        .eq('id', id);
+      if (error) { console.error('Delete error:', error); return; }
+      await loadItems();
     }
 
-    render();
+    loadItems();
     input.focus();
   </script>
 </body>
