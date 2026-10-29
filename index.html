@@ -139,9 +139,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+  (async function() {
     const SUPABASE_URL = 'https://kwjhqpsuckidanhmorhy.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3amhxcHN1Y2tpZGFuaG1vcmh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNTc4OTYsImV4cCI6MjA4NjYzMzg5Nn0.mAqVdegybE5YTVzZpk3-VAxqouBX_SXGy-PMc0hI384';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let items = [];
 
@@ -156,7 +157,7 @@
     });
 
     async function loadItems() {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('shopping_items')
         .select('*')
         .order('created_at', { ascending: true });
@@ -201,7 +202,7 @@
       if (!name) return;
       input.value = '';
       input.focus();
-      const { error } = await supabase
+      const { error } = await db
         .from('shopping_items')
         .insert({ name, checked: false });
       if (error) { console.error('Insert error:', error); return; }
@@ -211,7 +212,7 @@
     async function toggleItem(id) {
       const item = items.find(i => i.id === id);
       if (!item) return;
-      const { error } = await supabase
+      const { error } = await db
         .from('shopping_items')
         .update({ checked: !item.checked })
         .eq('id', id);
@@ -220,7 +221,7 @@
     }
 
     async function deleteItem(id) {
-      const { error } = await supabase
+      const { error } = await db
         .from('shopping_items')
         .delete()
         .eq('id', id);
@@ -228,8 +229,9 @@
       await loadItems();
     }
 
-    loadItems();
+    await loadItems();
     input.focus();
+  })();
   </script>
 </body>
 </html>
